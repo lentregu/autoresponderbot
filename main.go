@@ -86,7 +86,9 @@ func postComment(event github.IssuesEvent, r *http.Request) {
 
 	installation := event.GetInstallation()
 	if installation == nil {
-		log.Println("No installation data found in event.")
+		// log.Println("No installation data found in event.")
+		log.Printf("No installation data found in event for issue #%d in repository %s/%s.",
+			event.GetIssue().GetNumber(), event.GetRepo().GetOwner().GetLogin(), event.GetRepo().GetName())
 		return
 	}
 	installationID := installation.GetID()
