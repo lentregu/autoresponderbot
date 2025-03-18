@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -70,7 +71,19 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func postComment(event github.IssuesEvent, r *http.Request) {
-	appID := int64(1177566) // App ID
+	// Retrieve the App ID from an environment variable
+	appIDStr := os.Getenv("APP_ID")
+	if appIDStr == "" {
+		log.Println("APP_ID environment variable is not set.")
+		return
+	}
+
+	appID, err := strconv.ParseInt(appIDStr, 10, 64)
+	if err != nil {
+		log.Printf("Error parsing APP_ID: %v", err)
+		return
+	}
+
 	installation := event.GetInstallation()
 	if installation == nil {
 		log.Println("No installation data found in event.")
@@ -80,7 +93,7 @@ func postComment(event github.IssuesEvent, r *http.Request) {
 
 	log.Printf("Generating JWT for App ID: %d", appID)
 
-	//Se genera un JWT usando la clave privada y el ID de la aplicación
+	// Generate JWT using the private key and the App ID
 	jwtToken, err := generateJWT(appID)
 	if err != nil {
 		log.Println("Failed to generate JWT token.")
@@ -113,14 +126,19 @@ func postComment(event github.IssuesEvent, r *http.Request) {
 }
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/webhook", handleWebhook).Methods("POST")
-
+	// Get the server port from an environment variable, default to 8080 if not set
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
+	// Initialize the router and define the webhook route
+	r := mux.NewRouter()
+	r.HandleFunc("/webhook", handleWebhook).Methods("POST")
+
 	log.Printf("Server listening on port %s", port)
-	http.ListenAndServe(":"+port, r)
+	// Start the server
+	if err := http.ListenAndServe(":"+port, r); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 }
